@@ -1,10 +1,13 @@
+# -*- coding:utf-8 -*-
+
 import Gamma
 
 class Node(object):
-    def __init__(self,val,p=0):
+    def __init__(self, val, p=0):
         self.docno = val[0]
         self.tf = val[1]
         self.next = p
+
 
 class LinkList(object):
     def __init__(self):
@@ -16,14 +19,12 @@ class LinkList(object):
             print('linklist is empty.')
             return
 
-        elif key <0  or key > self.getlength():
+        elif key < 0 or key > self.getlength():
             print('the given key is error')
             return
 
         else:
             return self.getitem(key)
-
-
 
     def __setitem__(self, key, value):
 
@@ -31,7 +32,7 @@ class LinkList(object):
             print('linklist is empty.')
             return
 
-        elif key <0  or key > self.getlength():
+        elif key < 0 or key > self.getlength():
             print('the given key is error')
             return
 
@@ -39,7 +40,7 @@ class LinkList(object):
             self.delete(key)
             return self.insert(key)
 
-    def initlist(self,data):
+    def initlist(self, data):
 
         self.head = Node(data[0])
 
@@ -52,17 +53,17 @@ class LinkList(object):
 
     def getlength(self):
 
-        p =  self.head
+        p = self.head
         length = 0
-        while p!=0:
-            length+=1
+        while p != 0:
+            length += 1
             p = p.next
 
         return length
 
     def is_empty(self):
 
-        if self.getlength() ==0:
+        if self.getlength() == 0:
             return True
         else:
             return False
@@ -71,27 +72,25 @@ class LinkList(object):
 
         self.head = 0
 
-
-    def append(self,item):
+    def append(self, item):
         pre = self.head
         curr = self.head
         temp = item[0]
-        if self.head ==0:
+        if self.head == 0:
             self.head = Node(item)
             return
         else:
             val = curr.docno
             curr = curr.next
-            while curr!= 0:
+            while curr != 0:
                 val += Gamma.__gammaUncompress__(curr.docno)
                 pre = curr
                 curr = curr.next
-            #val += Gamma.__gammaUncompress__(curr.docno)
-            item[0] = Gamma.__gamma__(temp-val)
+            # val += Gamma.__gammaUncompress__(curr.docno)
+            item[0] = Gamma.__gamma__(temp - val)
             pre.next = Node(item)
 
-
-    def getitem(self,index,double=False):
+    def getitem(self, index, double=False):
 
         if self.is_empty():
             print('Linklist is empty.')
@@ -99,71 +98,70 @@ class LinkList(object):
         j = 0
         p = self.head
 
-        while p.next!=0 and j <index:
+        while p.next != 0 and j < index:
             p = p.next
-            j+=1
+            j += 1
 
-        if j ==index:
+        if j == index:
             if not double:
                 return p.docno
             elif double:
-                return p.docno,p.tf
+                return p.docno, p.tf
 
         else:
 
             print ('target is not exist!')
 
-    def insert(self,index,item):
+    def insert(self, index, item):
 
-        if self.is_empty() or index<0 or index >self.getlength():
+        if self.is_empty() or index < 0 or index > self.getlength():
             print ('Linklist is empty.')
             return
 
-        if index ==0:
-            q = Node(item,self.head)
+        if index == 0:
+            q = Node(item, self.head)
 
             self.head = q
 
         p = self.head
-        post  = self.head
+        post = self.head
         j = 0
-        while p.next!=0 and j<index:
+        while p.next != 0 and j < index:
             post = p
             p = p.next
             j += 1
 
-        if index ==j:
-            q = Node(item,p)
+        if index == j:
+            q = Node(item, p)
             post.next = q
             q.next = p
 
+    def delete(self, index):
 
-    def delete(self,index):
-
-        if self.is_empty() or index<0 or index >self.getlength():
+        if self.is_empty() or index < 0 or index > self.getlength():
             print('Linklist is empty. or Index Error')
             return
 
         if index == 0:
             self.head = self.head.next
 
-#        if index ==0:
-#           q = Node(item,self.head)
+        #        if index ==0:
+        #           q = Node(item,self.head)
 
-#            self.head = q
+        #            self.head = q
 
         p = self.head
-        post  = self.head
+        post = self.head
         j = 0
-        while p.next!=0 and j<index:
+        while p.next != 0 and j < index:
             post = p
             p = p.next
-            j+=1
+            j += 1
 
-        if index ==j:
+        if index == j:
             post.next = p.next
 
-    def index(self,value):
+    def index(self, value):
 
         if self.is_empty():
             print('Linklist is empty.')
@@ -171,57 +169,53 @@ class LinkList(object):
 
         p = self.head
         i = 0
-        while p.next!=0 and not p.docno ==value:
+        while p.next != 0 and not p.docno == value:
             p = p.next
-            i+=1
+            i += 1
 
         if p.docno == value:
             return i
         else:
             return -1
 
-    def increase(self,value):
+    def increase(self, docno):
         if self.is_empty():
-            #print('Linklist is empty.')
+            # print('Linklist is empty.')
             return False
         p = self.head
-        docno_val=p.docno
-        while p.next!=0 and not docno_val == value:
+        docno_val = p.docno
+        while p.next != 0 and not docno_val == docno:   # 匹配docno
             p = p.next
-            docno_val += Gamma.__gammaUncompress__(p.docno)
-        if docno_val == value:
-            p.tf+=1
+            docno_val += Gamma.__gammaUncompress__(p.docno) # 解压？没懂
+        if docno_val == docno:
+            p.tf += 1   # 词项频率加一
             return True
         else:
             return False
+
     def output(self):
         p = self.head
         if p == 0:
             print('empty')
-        s= ''
+        s = ''
         count = p.docno
-        s += str(count)
-        s += ','
-        s += str(p.tf)
-        s += '|'
+        s += str(count)+','+str(p.tf)+'|'
         p = p.next
-        while p!=0:
-            #print(count)
+        while p != 0:
+            # print(count)
             count += Gamma.__gammaUncompress__(p.docno)
-            s += str(count)
-            #print('add : ',)
-            s += ','
-            s += str(p.tf)
-            s += '|'
+            s += str(count)+','+str(p.tf)+'|'
             p = p.next
         return s
-'''
-list_test = LinkList()
-data = [['a',1],['b',2],['c',1]]
-list_test.initlist(data)
-print(list_test.getitem(2,True))
-list_test.increase('c')
-print(list_test.getitem(2,True))
-list_test.append(['d',2])
-print(list_test.output())
-'''
+
+
+#
+# list_test = LinkList()
+# data = [['a',1],['b',2],['c',1]]
+# list_test.initlist(data)
+# print(list_test.getitem(2,True))
+# list_test.increase('c')
+# print(list_test.getitem(2,True))
+# list_test.append(['d',2])
+# print(list_test.output())
+
