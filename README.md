@@ -1,2 +1,2 @@
-# Infomation-Retrieval
+# Information-Retrieval
 code for ZJU course &lt;Information Retrieval and Web Search>
