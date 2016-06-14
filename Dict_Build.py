@@ -1,44 +1,57 @@
 # -*- coding:utf-8 -*-
+import fnmatch
+import os
 from Linklist import LinkList
 import Gamma
 import math
+import json
 
 
-# 词典节点
-class Dict_Node():
-    def __init__(self, df, post_list):
-        self.df = df  # 词项文档频率
-        self.post_list = post_list  # 倒排表指针,倒排表格式：[[docid,tf],..]
-
-    def set_df(self, df):
-        self.df = df
-
-    def outputNode(self):
-        return str(self.df)
+def compDocNode(x, y):  # 比较文档出现频率，用于给倒排表排序
+    if x['tf'] < y['tf']:
+        return 1
+    elif x['tf'] > y['tf']:
+        return -1
+    else:
+        return 0
 
 
 # 词典-倒排表
 class Dict_Postlist():
-    token_postList = {}  # 倒排表集合，key为单词本身
+    token_postList = dict()  # 倒排表集合，key为单词本身
     token_dict = []  # 字典
-    docs = []
+    docs = []  # 文档ID对应文档名
 
     # 添加到倒排表
     # para token    添加的词项
     #      docno    词项所在文档id
     #      position 词项所在文档出现位置
+    # 倒排表格式：
+    # {
+    #   'someword':{
+    #       'df':xx,
+    #       'post_list':[ { 'docno':xx,'tf':xx,'position':[xx,...] },... ]
+    #       },
+    #   ...
+    # }
     def addToPostList(self, token, docno, position):
-        templink = self.token_postList[token].post_list
-        if not templink.increase(docno):  # docno词项频率加一
-            item = [docno, 1]
-            templink.append(item)
-        self.token_postList[token].df += 1
+        # print self.token_postList.keys()
+        temp_postlist = self.token_postList[token]['post_list']
+        list_len = len(temp_postlist)
+        temp_index = 0
+        while temp_index < list_len:
+            if temp_postlist[temp_index]['docno'] == docno:
+                temp_postlist[temp_index]['tf'] = temp_postlist[temp_index]['tf'] + 1
+                temp_postlist[temp_index]['position'].append(position)
+                break
+            temp_index = temp_index + 1
+        if temp_index == list_len:
+            temp_postlist.append({'docno': docno, 'tf': 1, 'position': [position]})
+            self.token_postList[token]['df'] += 1
 
     # 添加到词典
     def addToDict(self, token):
-        post_list = LinkList()
-        node = Dict_Node(0, post_list)
-        self.token_postList[token] = node
+        self.token_postList[token] = {'df': 0, 'post_list': []}
         self.token_dict.append(token)
 
     # spimi单步
@@ -46,6 +59,11 @@ class Dict_Postlist():
     def spimi_invert(self, token_stream):
         doc_pointer = 0  # token_stream中，指向doc的索引
         token_pointer = 0  # token_stream中，指向token的索引
+
+        max_index_size = 2333
+        index_size = 0
+        index_order = 0
+
         while doc_pointer < len(token_stream):
             while token_pointer < len(token_stream[doc_pointer]):
                 temp_token = token_stream[doc_pointer][token_pointer]
@@ -54,39 +72,60 @@ class Dict_Postlist():
                 self.addToPostList(temp_token, doc_pointer, token_pointer)  # 添加至倒排记录表
 
                 token_pointer += 1
+                index_size += 1
 
             doc_pointer += 1
             token_pointer = 0
             print "doc " + str(doc_pointer) + " postList insert completed"
-            # print(self.token_dict.get('of').df)
-            # with open("output.txt", 'w+') as outfile:
-            #     for item in self.token_dict:
-            #         s = self.token_dict[item].outputNode()
-            #         # 输出词项 以及 df，词项指针
-            #         out = item + '|' + s
-            #         outfile.write(out)
-            #         outfile.write('\n')
-            #         temp_link = self.token_dict[item].post_list
-            #         outfile.write(temp_link.output())
-            #         outfile.write('\n')
 
-    # spimi算法
+            if index_size > max_index_size:
+                with open("index/index_" + str(index_order) + ".json", 'w+') as outfile:
+                    json.dump(self.token_postList, outfile)
+                    outfile.close()
+                self.token_postList = {}
+                self.token_dict = []
+                index_size = 0
+                index_order = index_order + 1
+
+        if index_size != max_index_size:
+            with open("index/index_" + str(index_order) + ".json", 'w+') as outfile:
+                # print self.token_postList
+                json.dump(self.token_postList, outfile)
+                outfile.close()
+
+    # spimi算法建立倒排索引
     def spimi_build(self, docStream):
         self.spimi_invert(docStream.token_stream)
         self.docs = docStream.docs[:]
+        self.saveDocIndexFile()
 
     def query(self, keyword):
-        res = self.token_postList.get(keyword).post_list
-        p = res.head
-        if p == 0:
-            print('not found')
-        count = p.docno
-        print "filename:" + str(count) + ',' + "token frequency:" + str(p.tf)
-        p = p.next
-        while p != 0:
-            count += Gamma.__gammaUncompress__(p.docno)
-            print "filename:" + self.docs[count] + "(id:" + str(count) + '),' + "token frequency:" + str(p.tf)
-            p = p.next
+        # read index file
+        finalPostList = []
+        for filename in os.listdir('index'):  # 遍历文件夹
+            file = open('index/' + filename, 'r')
+            postlist = json.load(file)
+            # print filename + " loaded"
+            if postlist.has_key(keyword):  # 在索引中匹配到keyword
+                # print(postlist)
+                for docNode in postlist.get(keyword).get('post_list'):  # 合并倒排表至finalPostList
+                    # print(docNode)
+                    finalPostList.append(docNode)
+            file.close()
+        # print finalPostList
+        finalPostList.sort(compDocNode)
+        docIndexFile = open("doc_filename_index", 'r')
+        docIndex = json.load(docIndexFile)  # get docIndex
+        if len(finalPostList) == 0:
+            print "keyword not found in docs"
+        for eachNode in finalPostList:
+            print "filename:" + docIndex[eachNode['docno']] + "(id:" + str(
+                eachNode['docno']) + '),' + "token frequency:" + str(eachNode['tf'])
+
+    def saveDocIndexFile(self):
+        f = open("doc_filename_index", 'w')
+        json.dump(self.docs, f)
+        f.close()
 
 
 '''

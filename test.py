@@ -9,6 +9,7 @@ stream.parseDocs()
 
 dict_post = Dict_Postlist()
 dict_post.spimi_build(stream)
+
 while(1):
     keyword = raw_input("input key word:")
     dict_post.query(keyword)

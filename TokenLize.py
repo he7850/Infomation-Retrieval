@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 
 import os
+import json
 
 class DocStream():
     token_stream = dict()   # filename为key，token数组为value
@@ -16,6 +17,7 @@ class DocStream():
                 self.token_stream[self.total] = self.parseTokenList(path+'/'+filename)
                 print filename+" completed"
             self.total = self.total + 1
+        self.saveDocidIndexFile()
 
     def parseTokenList(self, filename): # 返回文件所有token组成的一个数组
         context_temp = ''  # 暂存标签正文
@@ -34,16 +36,25 @@ class DocStream():
                         while (current < row_len and (row[current] == ' ' or row[current] == '\t' or row[
                             current] == '\n')):
                             current += 1
-                        context_temp += ' '
+                        if len(context_temp)>0 and context_temp[-1]!=' ':
+                            context_temp += ' '
                         current = current - 1
                     elif row[current] == ',' or row[current] == '.':  # 如果在数字中出现则忽略
                         if current > 0 and current < row_len-1 and row[current - 1].isdigit() and \
                                 row[current + 1].isdigit():
                             pass
                         else:
-                            context_temp += ' '
+                            if len(context_temp)>0 and context_temp[-1]!=' ':
+                                context_temp += ' '
                     current += 1
+        if context_temp[-1]==' ':
+            context_temp = context_temp[0:-2]
         return context_temp.split(' ')
+
+    def saveDocidIndexFile(self):
+        f = open("doc_filename_index",'w')
+        json.dump(self.docs,f)
+        f.close()
 
 #
 # stream = DocStream()

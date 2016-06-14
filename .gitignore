@@ -90,3 +90,5 @@ ENV/
 
 # data files
 data/
+index/
+doc_filename_index
