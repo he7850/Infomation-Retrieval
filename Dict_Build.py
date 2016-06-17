@@ -6,16 +6,6 @@ import Gamma
 import math
 import json
 
-
-def compDocNode(x, y):  # 比较文档出现频率，用于给倒排表排序
-    if x['tf'] < y['tf']:
-        return 1
-    elif x['tf'] > y['tf']:
-        return -1
-    else:
-        return 0
-
-
 # 词典-倒排表
 class Dict_Postlist():
     token_postList = dict()  # 倒排表集合，key为单词本身
@@ -80,7 +70,7 @@ class Dict_Postlist():
 
             if index_size > max_index_size:
                 with open("index/index_" + str(index_order) + ".json", 'w+') as outfile:
-                    json.dump(self.token_postList, outfile)
+                    json.dump(self.token_postList, outfile, indent=4)
                     outfile.close()
                 self.token_postList = {}
                 self.token_dict = []
@@ -90,7 +80,7 @@ class Dict_Postlist():
         if index_size != max_index_size:
             with open("index/index_" + str(index_order) + ".json", 'w+') as outfile:
                 # print self.token_postList
-                json.dump(self.token_postList, outfile)
+                json.dump(self.token_postList, outfile, indent=4)
                 outfile.close()
 
     # spimi算法建立倒排索引
@@ -99,33 +89,11 @@ class Dict_Postlist():
         self.docs = docStream.docs[:]
         self.saveDocIndexFile()
 
-    def query(self, keyword):
-        # read index file
-        finalPostList = []
-        for filename in os.listdir('index'):  # 遍历文件夹
-            file = open('index/' + filename, 'r')
-            postlist = json.load(file)
-            # print filename + " loaded"
-            if postlist.has_key(keyword):  # 在索引中匹配到keyword
-                # print(postlist)
-                for docNode in postlist.get(keyword).get('post_list'):  # 合并倒排表至finalPostList
-                    # print(docNode)
-                    finalPostList.append(docNode)
-            file.close()
-        # print finalPostList
-        finalPostList.sort(compDocNode)
-        docIndexFile = open("doc_filename_index", 'r')
-        docIndex = json.load(docIndexFile)  # get docIndex
-        if len(finalPostList) == 0:
-            print "keyword not found in docs"
-        for eachNode in finalPostList:
-            print "filename:" + docIndex[eachNode['docno']] + "(id:" + str(
-                eachNode['docno']) + '),' + "token frequency:" + str(eachNode['tf'])
-
     def saveDocIndexFile(self):
         f = open("doc_filename_index", 'w')
         json.dump(self.docs, f)
         f.close()
+
 
 
 '''
