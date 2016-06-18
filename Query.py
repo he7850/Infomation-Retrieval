@@ -124,6 +124,7 @@ class PhraseQuery(object):
 
     def __init__(self, words):
         self.keywords = words[:]
+        self.res = []
         print self.keywords
 
     def getAllWordsPostList(self):  # postList格式：[{"tf": 2, "position": [231, 400], "docno": 0},...]
@@ -133,6 +134,7 @@ class PhraseQuery(object):
         print "word number:", len(self.wordPostList)
 
     def getMatchedDocIndex(self):  # 得到可能匹配的文档（包含这些单词）
+        self.docs = []
         self.docs = self.wordPostList[0]
         i = 1
         while i < len(self.wordPostList):
@@ -211,7 +213,7 @@ def pointCmp(x, y):
 
 
 def query(input_line):  # 输入一行进行查询
-    keywords = input_line.lower().split()
+    keywords = input_line.split()
     print "keywords:", keywords
     if 'AND' in keywords or 'OR' in keywords:  # bool查询
         print 'bool query!'
