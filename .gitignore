@@ -92,3 +92,6 @@ ENV/
 data/
 index/
 doc_filename_index
+
+# idea files
+.idea/
