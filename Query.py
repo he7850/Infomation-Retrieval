@@ -39,7 +39,7 @@ def getCombinePostList(left, right, logic='AND'):  # 返回合并倒排表，格
     res = []
     i = j = 0
     if logic == 'AND':
-        while i < len(left) or j < len(right):
+        while i < len(left) and j < len(right):
             if left[i]['docno'] < right[j]['docno']:
                 i += 1
             elif left[i]['docno'] > right[j]['docno']:
@@ -50,10 +50,10 @@ def getCombinePostList(left, right, logic='AND'):  # 返回合并倒排表，格
                 j += 1
     elif logic == 'OR':
         while i < len(left) or j < len(right):
-            if left[i]['docno'] < right[j]['docno']:
+            if i<len(left) and j<len(right) and left[i]['docno'] < right[j]['docno'] or j==len(right):
                 res.append({'docno': left[i]['docno']})
                 i += 1
-            elif right[j]['docno'] < left[i]['docno']:
+            elif i<len(left) and j<len(right) and left[i]['docno'] > right[j]['docno'] or i==len(left):
                 res.append({'docno': right[j]['docno']})
                 j += 1
             else:
@@ -85,7 +85,7 @@ class BoolQuery(object):
         else:
             self.left.searchQueryResult()
             self.right.searchQueryResult()
-            self.res = getCombinePostList(self.left, self.right, self.logic)
+            self.res = getCombinePostList(self.left.res, self.right.res, self.logic)
 
     def getQueryResult(self):
         print self.res
@@ -108,7 +108,7 @@ def getBoolQueryTree(line):  # 解析bool查询语句，生成查询树返回，
         if line[i + 1] == 'AND':  # AND优先级较高，纳入右子树
             root.right = BoolQuery(line[i + 1], root.right, BoolQuery(line[i + 2]))
         else:  # OR优先级较低，原树作为左子树生成新树
-            root = BoolQuery(line[i + 1], root, line[i + 2])
+            root = BoolQuery(line[i + 1], root, BoolQuery(line[i + 2]))
         i += 2  # 下一个词
     root.printTree()
     return root
@@ -126,11 +126,13 @@ class PhraseQuery(object):
             i += 1
         return finalPostList
 
-    def sortByWordDistance(self):
+    def sortByWordDistanceAndFrequency(self):
         i = j = 0
+        points = []
         while i < len(self.keywords):
             while j < len(self.keywords):
                 # TODO:给得到的文档排序
+
                 pass
 
 
@@ -148,6 +150,7 @@ def query(input_line):
     if 'AND' in keywords or 'OR' in keywords:  # bool查询
         print 'bool query!'
         boolQueryTree = getBoolQueryTree(keywords)
+        boolQueryTree.searchQueryResult()
         res = boolQueryTree.getQueryResult()
         for docIndexNode in res:
             print(docIndexNode['docno'])
