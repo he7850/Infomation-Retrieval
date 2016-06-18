@@ -5,7 +5,9 @@ __author__ = 'HUBIN'
 
 import os
 import json
+import word_corrector
 
+diction = word_corrector.Dictionary()
 
 def getWordPostList(keyword):  # 得到一个词的倒排表
     finalPostList = []
@@ -104,13 +106,13 @@ class BoolQuery(object):
 
 
 def getBoolQueryTree(line):  # 解析bool查询语句，生成查询树返回，line格式为 xx AND xx OR xx...
-    root = BoolQuery(line[1], BoolQuery(line[0]), BoolQuery(line[2]))
+    root = BoolQuery(line[1], BoolQuery(line[0].lower()), BoolQuery(line[2].lower()))
     i = 2
     while i < len(line) - 2:
         if line[i + 1] == 'AND':  # AND优先级较高，纳入右子树
-            root.right = BoolQuery(line[i + 1], root.right, BoolQuery(line[i + 2]))
+            root.right = BoolQuery(line[i + 1], root.right, BoolQuery(line[i + 2].lower()))
         else:  # OR优先级较低，原树作为左子树生成新树
-            root = BoolQuery(line[i + 1], root, BoolQuery(line[i + 2]))
+            root = BoolQuery(line[i + 1], root, BoolQuery(line[i + 2].lower()))
         i += 2  # 下一个词
     root.printTree()
     return root
@@ -123,7 +125,8 @@ class PhraseQuery(object):
     res = []
 
     def __init__(self, words):
-        self.keywords = words[:]
+        for word in words:
+            self.keywords.append(word.lower())
         self.res = []
         print self.keywords
 
@@ -223,7 +226,7 @@ def query(input_line):  # 输入一行进行查询
         for docIndexNode in res:
             print(docIndexNode['docno'])
     elif len(keywords) == 1:  # 单词查询
-        postList = getWordPostList(keywords[0])
+        postList = getWordPostList(keywords[0].lower())
         print(postList)
     elif len(keywords) > 1:  # 短语查询
         phraseQuery = PhraseQuery(keywords)
