@@ -141,7 +141,7 @@ class PhraseQuery(object):
         self.docs = self.wordPostList[0]
         i = 1
         while i < len(self.wordPostList):
-            self.docs = getCombinePostList(self.wordPostList[i], self.docs)
+            self.docs = getCombinePostList(self.wordPostList[i], self.docs, logic='OR')
             i += 1
         print "matched docs:", self.docs
 
