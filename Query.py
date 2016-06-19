@@ -126,7 +126,7 @@ class PhraseQuery(object):
 
     def __init__(self, words):
         for word in words:
-            self.keywords.append(word.lower())
+            self.keywords.append(diction.getCorrectWord(word.lower()))
         self.res = []
         print self.keywords
 
@@ -220,13 +220,16 @@ def query(input_line):  # 输入一行进行查询
     print "keywords:", keywords
     if 'AND' in keywords or 'OR' in keywords:  # bool查询
         print 'bool query!'
+        for i in range(len(keywords)):
+            if not keywords[i]=='AND' and not keywords[i]=='OR':
+                keywords[i] = diction.getCorrectWord(keywords[i])
         boolQueryTree = getBoolQueryTree(keywords)
         boolQueryTree.searchQueryResult()
         res = boolQueryTree.getQueryResult()
         for docIndexNode in res:
             print(docIndexNode['docno'])
     elif len(keywords) == 1:  # 单词查询
-        postList = getWordPostList(keywords[0].lower())
+        postList = getWordPostList(diction.getCorrectWord(keywords[0].lower()))
         print(postList)
     elif len(keywords) > 1:  # 短语查询
         phraseQuery = PhraseQuery(keywords)
