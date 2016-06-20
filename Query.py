@@ -1,7 +1,7 @@
 # coding=utf-8
 import fnmatch
 import math
-
+import vsm
 __author__ = 'HUBIN'
 
 import os
@@ -175,6 +175,13 @@ class PhraseQuery(object):
                 points[i] += 50 * max(0, (5 - abs(dis)))
             print "doc ", self.docs[i], "'s point is:", points[i]
 
+        vsmscore = vsm.do_search(self.keywords)
+        for i in range(len(self.docs)):
+            points[i] += vsmscore[self.docs[i]['docno']][1]*50
+
+        #for (id,score) in vsmscore:
+        #    points[id] += vsmscore*50
+
         for i in range(len(self.docs)):  # 记录结果并排序
             self.res.append({'docno': self.docs[i]['docno'], 'point': points[i]})
         print "res:", self.res
@@ -240,4 +247,4 @@ def query(input_line):  # 输入一行进行查询
         phraseQuery.sortByWordDistanceAndFrequency()
         # print phraseQuery.res
         for docIndexNode in phraseQuery.res:
-            print(docIndexNode['docno'], docIndexNode['point'])
+            print(docIndexNode['docno'], '%d' % docIndexNode['point'])

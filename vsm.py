@@ -14,8 +14,9 @@ import pickle
 # We use a corpus of four documents.  Each document has an id, and
 # these are the keys in the following dict.  The values are the
 # corresponding filenames.
-info = "C:\Users\lenovo\Desktop\IR_LAB\Reuters\Reuters"
+info = "data"
 listfile=os.listdir(info)
+listfile.remove(".DS_Store")
 print len(listfile)
 document_filenames = {}
 for i in range(len(listfile)):
@@ -75,7 +76,7 @@ def main():
     print document_frequency["week"]
     pk_file3 = open('length.pkl', 'rb')
     length = pickle.load(pk_file3)
-    # print length
+    print length
     while True:
         do_search()
 
@@ -167,11 +168,25 @@ def inverse_document_frequency(term):
     else:
         return 0.0
 
-def do_search():
+def do_search(words):
+    global dictionary, document_frequency, postings, length
+    pk_file = open('word.pkl', 'rb')
+    dictionary = pickle.load(pk_file)
+
+    pk_file1 = open('dict.pkl', 'rb')
+    postings = pickle.load(pk_file1)
+    # initialize_document_frequencies()
+    pk_file2 = open('doc_freq.pkl', 'rb')
+    document_frequency = pickle.load(pk_file2)
+    print document_frequency["week"]
+    pk_file3 = open('length.pkl', 'rb')
+    length = pickle.load(pk_file3)
+    
     """Asks the user what they would like to search for, and returns a
     list of relevant documents, in decreasing order of cosine
     similarity."""
-    query = tokenize(raw_input("Search query >> "))
+    #query = tokenize(raw_input("Search query >> "))
+    query = words
     if query == []:
         sys.exit()
     # find document ids containing all query terms.  Works by
@@ -191,9 +206,10 @@ def do_search():
                      for id in set_files],
                     key=lambda x: x[1],
                     reverse=False)
-    print "Score: filename"
-    for (id,score) in scores:
-        print str(score)+": "+document_filenames[id]
+    #print "Score: filename"
+    return  scores
+    #for (id,score) in scores:
+     #   print str(score)+": "+document_filenames[id]
 
 def intersection(sets):
     """Returns the intersection of all sets in the list sets. Requires
@@ -210,8 +226,9 @@ def similarity(query,id):
     for term in query:
         if term in dictionary:
             similarity += inverse_document_frequency(term)*imp(term,id)
-    # print id, similarity
-    # print length[id]
+    print id, similarity
+    print document_filenames[id]
+    print length[id]
     similarity = similarity / length[id]
     return similarity
 
