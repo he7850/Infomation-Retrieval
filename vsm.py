@@ -27,7 +27,7 @@ print document_filenames[1]
 #                       3 : "4.txt"}
 
 # The size of the corpus
-N = len(document_filenames)
+N = len(document_filenames) - 4
 # ....................................................# dictionary: a set to contain all terms (i.e., words) in the document
 # # corpus.
 dictionary = set()
@@ -60,15 +60,25 @@ length = defaultdict(float)
 characters = " .,!#$%^&*();:\n\t\\\"?!{}[]<>"
 
 def main():
-    initialize_terms_and_postings()
-    initialize_document_frequencies()
-    initialize_lengths()
-    print inverse_document_frequency("dog")
+    # initialize_terms_and_postings()
+    # initialize_lengths()
+    # print inverse_document_frequency("dog")
+    global dictionary, document_frequency, postings, length
+    pk_file = open('word.pkl', 'rb')
+    dictionary = pickle.load(pk_file)
+
+    pk_file1 = open('dict.pkl', 'rb')
+    postings = pickle.load(pk_file1)
+    # initialize_document_frequencies()
+    pk_file2 = open('doc_freq.pkl', 'rb')
+    document_frequency = pickle.load(pk_file2)
+    print document_frequency["week"]
+    pk_file3 = open('length.pkl', 'rb')
+    length = pickle.load(pk_file3)
+    # print length
     while True:
         do_search()
-    # pk_file = open('doc_freq.pkl', 'rb')
-    # data1 = pickle.load(pk_file)
-    # print data1
+
 
 def initialize_terms_and_postings():
     """Reads in each document in document_filenames, splits it into a
@@ -94,6 +104,10 @@ def initialize_terms_and_postings():
     # s = repr(postings)
     # f2.writelines(s)
     # f2.close()
+    output = open("word.pkl","wb")
+    pickle.dump(dictionary, output)
+    output.close()
+    print "pickle sucess"
     output1 = open("dict.pkl","wb")
     pickle.dump(postings, output1)
     output1.close()
@@ -118,6 +132,7 @@ def initialize_document_frequencies():
     # s = repr(document_frequency)
     # f3.writelines(s)
     # f3.close()
+    print document_frequency
     output2 = open("doc_freq.pkl","wb")
     pickle.dump(document_frequency, output2)
     output2.close()
@@ -170,12 +185,12 @@ def do_search():
     set_files = []
     for i in range(N):
         set_files.append(i)
+    print set_files[-1]
     set_files = set(set_files)
-    print set_files
     scores = sorted([(id,similarity(query,id))
                      for id in set_files],
                     key=lambda x: x[1],
-                    reverse=True)
+                    reverse=False)
     print "Score: filename"
     for (id,score) in scores:
         print str(score)+": "+document_filenames[id]
@@ -195,8 +210,9 @@ def similarity(query,id):
     for term in query:
         if term in dictionary:
             similarity += inverse_document_frequency(term)*imp(term,id)
+    # print id, similarity
+    # print length[id]
     similarity = similarity / length[id]
-
     return similarity
 
 if __name__ == "__main__":
