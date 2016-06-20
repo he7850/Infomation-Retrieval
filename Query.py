@@ -156,19 +156,26 @@ class PhraseQuery(object):
             points.append(0)
             while j < len(self.keywords):  # 得到每个单词的位置
                 # print "word ", j, ":", self.wordPostList[j]
+                foundFlag = False
                 for docNode in self.wordPostList[j]:
                     # print "docNode:",docNode
+                    position[i].append([])
                     if docNode['docno'] == self.docs[i]['docno']:  # 在第i个文档中出现
+                        foundFlag = True
                         print "keyword ", self.keywords[j], " found in doc:", docNode
                         print "position ", docNode['position'], " added to record"
-                        position[i].append(docNode['position'])
+                        position[i][j] = docNode['position'][:]
+
                 j += 1
 
         for i in range(len(self.docs)):  # 给每篇文档打分
             print "set point for doc:", self.docs[i]
             for wordPositions in position[i]:  # 关键词出现次数越多，得分越高
+                print wordPositions
                 points[i] += len(wordPositions)
             for k in range(len(self.keywords) - 1):  # 关键词距离越近，得分越高，距离大于5就不加分
+                print "find dis for ",k, "th word"
+                print position[i]
                 (dis, pos1, pos2) = findLeastDistance(position[i][k], position[i][k + 1])
                 points[i] += 50 * max(0, (5 - abs(dis)))
             print "doc ", self.docs[i], "'s point is:", points[i]
@@ -182,7 +189,7 @@ class PhraseQuery(object):
 
 def findLeastDistance(positions1, positions2):
     i = j = 0
-    pos1 = pos2 = 0
+    pos1 = pos2 = -1
     res = 9999
     while i < len(positions1) and j < len(positions2):
         if abs(positions1[i] - positions2[j]) < abs(res):
