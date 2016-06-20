@@ -1,5 +1,6 @@
 # coding=utf-8
-import math
+import fnmatch
+import vsm
 
 __author__ = 'HUBIN'
 
@@ -9,58 +10,61 @@ import word_corrector
 
 diction = word_corrector.Dictionary()
 
+
+# 倒排表格式：
+# {
+#   'someword':[ xx, [         [ xx,    xx, [xx,xx..] ]  ] ]
+#                df  post_list   docId  tf  position
+#       ],
+#   ...
+# }
 def getWordPostList(keyword):  # 得到一个词的倒排表
     finalPostList = []
     for filename in os.listdir('index'):  # 遍历文件夹
-        file = open('index/' + filename, 'r')
-        postlist = json.load(file)
-        # print filename + " loaded"
-        if postlist.has_key(keyword):  # 在索引中匹配到keyword
-            # print(postlist)
-            for docNode in postlist.get(keyword).get('post_list'):  # 合并倒排表至finalPostList
-                # print(docNode)
-                if len(finalPostList) == 0 or docNode['docno'] > finalPostList[-1][
-                    'docno']:  # 大部分docId更大的可以直接添加在finalPostList之后
-                    finalPostList.append(docNode)
-                else:  # 插入中间某个位置
-                    for i in range(len(finalPostList)):
-                        if docNode['docno'] < finalPostList[i]['docno']:
-                            finalPostList.insert(i, docNode)
-        file.close()
+        if fnmatch.fnmatch(filename, "index_*.json"):
+            file = open('index/' + filename, 'r')
+            # print filename + " loaded"
+            postlist = json.load(file)
+            if postlist.has_key(keyword):  # 在索引中匹配到keyword
+                # print(postlist)
+                for docNode in postlist[keyword][1]:  # 合并倒排表至finalPostList
+                    # print(docNode)
+                    if len(finalPostList) == 0 or docNode[0] > finalPostList[-1][
+                        0]:  # 大部分docId更大的可以直接添加在finalPostList之后
+                        finalPostList.append(docNode)
+                    else:  # 插入中间某个位置
+                        for i in range(len(finalPostList)):
+                            if docNode[0] < finalPostList[i][0]:
+                                finalPostList.insert(i, docNode)
+                                break
+            file.close()
     return finalPostList
-    # # finalPostList.sort(compDocIndex)
-    # docIndexFile = open("doc_filename_index", 'r')
-    # docIndex = json.load(docIndexFile)  # get docIndex
-    # if len(finalPostList) == 0:
-    #     print "keyword not found in docs"
-    # for eachNode in finalPostList:
-    #     print "filename:" + docIndex[eachNode['docno']] + "(id:" + str(
-    #         eachNode['docno']) + '),' + "token frequency:" + str(eachNode['tf'])
 
 
-def getCombinePostList(left, right, logic='AND'):  # 返回合并倒排表，格式为[{'docno':xx},...]
+def getCombinePostList(left, right, logic='AND'):  # 返回合并倒排表，格式为[ [xx]   ,...] 与原始倒排表保持一致
+    #                                                                      docId
     res = []
     i = j = 0
     if logic == 'AND':
         while i < len(left) and j < len(right):
-            if left[i]['docno'] < right[j]['docno']:
+            if left[i][0] < right[j][0]:
                 i += 1
-            elif left[i]['docno'] > right[j]['docno']:
+            elif left[i][0] > right[j][0]:
                 j += 1
-            elif left[i]['docno'] == right[j]['docno']:
-                res.append({'docno': left[i]['docno']})
+            elif left[i][0] == right[j][0]:
+                res.append([left[i][0]])
                 i += 1
                 j += 1
     elif logic == 'OR':
         while i < len(left) or j < len(right):
-            if i < len(left) and j < len(right) and left[i]['docno'] < right[j]['docno'] or j == len(right):
-                res.append({'docno': left[i]['docno']})
+            if i < len(left) and j < len(right) and left[i][0] < right[j][0] or j == len(right):
+                res.append([left[i][0]])
                 i += 1
-            elif i < len(left) and j < len(right) and left[i]['docno'] > right[j]['docno'] or i == len(left):
-                res.append({'docno': right[j]['docno']})
+            elif i < len(left) and j < len(right) and left[i][0] > right[j][0] or i == len(left):
+                res.append([right[j][0]])
                 j += 1
             else:
-                res.append({'docno': right[j]['docno']})
+                res.append([right[j][0]])
                 i += 1
                 j += 1
     return res
@@ -125,19 +129,19 @@ class PhraseQuery(object):
     res = []
 
     def __init__(self, words):
-        for word in words:
-            self.keywords.append(diction.getCorrectWord(word.lower()))
+        self.keywords = [diction.getCorrectWord(word.lower()) for word in words]
         self.res = []
-        print self.keywords
+        # print self.keywords
+        # print "word number:", len(self.keywords)
 
-    def getAllWordsPostList(self):  # postList格式：[{"tf": 2, "position": [231, 400], "docno": 0},...]
-        self.wordPostList = []
-        for keyword in self.keywords:
-            self.wordPostList.append(getWordPostList(keyword))
-        print "word number:", len(self.wordPostList)
+    def getAllWordsPostList(self):  # postList格式：[[2,  [231, 400], 0],...]
+        #                                            tf   position    docId
+        self.wordPostList = [getWordPostList(keyword) for keyword in self.keywords]
+        # print "length of self.wordPostList:",len(self.wordPostList)
+        # for postList in self.wordPostList:
+            # print "length of postList:",len(postList)
 
     def getMatchedDocIndex(self):  # 得到可能匹配的文档（包含这些单词）
-        self.docs = []
         self.docs = self.wordPostList[0]
         i = 1
         while i < len(self.wordPostList):
@@ -146,44 +150,48 @@ class PhraseQuery(object):
         print "matched docs:", self.docs
 
     def sortByWordDistanceAndFrequency(self):
-        points = []  # 存放各文档打分
+        scores = []  # 存放各文档打分
         position = []  # 存放各文档各word的position，格式：[     [     [1,10,15],...],...]
         #                                               各文档 各单词 各位置
 
         for i in range(len(self.docs)):  # 给每篇文档记录word位置
+            # print "record position for docid:", self.docs[i][0]
             j = 0
             position.append([])
-            points.append(0)
+            scores.append(0)
             while j < len(self.keywords):  # 得到每个单词的位置
-                # print "word ", j, ":", self.wordPostList[j]
-                foundFlag = False
+                # print "for word ", self.keywords[j]
+                position[i].append([])
                 for docNode in self.wordPostList[j]:
-                    # print "docNode:",docNode
-                    position[i].append([])
-                    if docNode['docno'] == self.docs[i]['docno']:  # 在第i个文档中出现
-                        foundFlag = True
-                        print "keyword ", self.keywords[j], " found in doc:", docNode
-                        print "position ", docNode['position'], " added to record"
-                        position[i][j] = docNode['position'][:]
-
+                    if docNode[0] == self.docs[i][0]:  # 在第i个文档中出现
+                        # print "keyword ", self.keywords[j], " found in doc:", docNode
+                        # print "position ", docNode[2], " added to record"
+                        position[i][j] = docNode[2]
                 j += 1
+            # print "docid:",i," position:",position[i]
 
         for i in range(len(self.docs)):  # 给每篇文档打分
-            print "set point for doc:", self.docs[i]
+            # print "set point for doc:", self.docs[i][0]
             for wordPositions in position[i]:  # 关键词出现次数越多，得分越高
-                print wordPositions
-                points[i] += len(wordPositions)
+                scores[i] += len(wordPositions)
             for k in range(len(self.keywords) - 1):  # 关键词距离越近，得分越高，距离大于5就不加分
-                print "find dis for ",k, "th word"
-                print position[i]
                 (dis, pos1, pos2) = findLeastDistance(position[i][k], position[i][k + 1])
-                points[i] += 50 * max(0, (5 - abs(dis)))
-            print "doc ", self.docs[i], "'s point is:", points[i]
+                scores[i] += 20 * max(0, (5 - abs(dis)))
+            # print "doc ", self.docs[i][0], "'s point is:", scores[i]
+
+        vsmscore = vsm.do_search(self.keywords)
+        for i in range(len(self.docs)):
+            scores[i] += vsmscore[self.docs[i]][1] * 50
+
+        for (id,score) in vsmscore:
+           scores[id] += vsmscore*50
 
         for i in range(len(self.docs)):  # 记录结果并排序
-            self.res.append({'docno': self.docs[i], 'point': points[i]})
-        print "res:", self.res
-        self.res.sort(pointCmp)
+            self.res.append([self.docs[i][0], scores[i]])
+        # print "res:", self.res
+        self.res.sort(scoreCmp)
+        if len(self.res)>10:
+            self.res = self.res[0:10]
         print "res after sort:", self.res
 
 
@@ -205,18 +213,18 @@ def findLeastDistance(positions1, positions2):
 
 
 def compDocIndex(x, y):  # 比较文档出现频率，用于给倒排表排序
-    if x['tf'] < y['tf']:
+    if x[1] < y[1]:
         return 1  # return 1表示需要调整顺序
-    elif x['tf'] > y['tf']:
+    elif x[1] > y[1]:
         return -1
     else:
         return 0
 
 
-def pointCmp(x, y):
-    if x['point'] < y['point']:
+def scoreCmp(x, y):
+    if x[1] < y[1]:
         return 1
-    elif x['point'] > y['point']:
+    elif x[1] > y[1]:
         return -1
     else:
         return 0
@@ -228,13 +236,13 @@ def query(input_line):  # 输入一行进行查询
     if 'AND' in keywords or 'OR' in keywords:  # bool查询
         print 'bool query!'
         for i in range(len(keywords)):
-            if not keywords[i]=='AND' and not keywords[i]=='OR':
+            if not keywords[i] == 'AND' and not keywords[i] == 'OR':
                 keywords[i] = diction.getCorrectWord(keywords[i])
         boolQueryTree = getBoolQueryTree(keywords)
         boolQueryTree.searchQueryResult()
         res = boolQueryTree.getQueryResult()
         for docIndexNode in res:
-            print(docIndexNode['docno'])
+            print(docIndexNode[0])
     elif len(keywords) == 1:  # 单词查询
         postList = getWordPostList(diction.getCorrectWord(keywords[0].lower()))
         print(postList)
@@ -244,5 +252,5 @@ def query(input_line):  # 输入一行进行查询
         phraseQuery.getMatchedDocIndex()
         phraseQuery.sortByWordDistanceAndFrequency()
         # print phraseQuery.res
-        for docIndexNode in phraseQuery.res:
-            print(docIndexNode['docno'], docIndexNode['point'])
+        for (docId,score) in phraseQuery.res:
+            print docId, ':%d' % score
