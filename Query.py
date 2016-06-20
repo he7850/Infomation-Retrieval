@@ -1,4 +1,5 @@
 # coding=utf-8
+import fnmatch
 import math
 
 __author__ = 'HUBIN'
@@ -12,21 +13,22 @@ diction = word_corrector.Dictionary()
 def getWordPostList(keyword):  # 得到一个词的倒排表
     finalPostList = []
     for filename in os.listdir('index'):  # 遍历文件夹
-        file = open('index/' + filename, 'r')
-        postlist = json.load(file)
-        # print filename + " loaded"
-        if postlist.has_key(keyword):  # 在索引中匹配到keyword
-            # print(postlist)
-            for docNode in postlist.get(keyword).get('post_list'):  # 合并倒排表至finalPostList
-                # print(docNode)
-                if len(finalPostList) == 0 or docNode['docno'] > finalPostList[-1][
-                    'docno']:  # 大部分docId更大的可以直接添加在finalPostList之后
-                    finalPostList.append(docNode)
-                else:  # 插入中间某个位置
-                    for i in range(len(finalPostList)):
-                        if docNode['docno'] < finalPostList[i]['docno']:
-                            finalPostList.insert(i, docNode)
-        file.close()
+        if fnmatch.fnmatch(filename,"index_*.html"):
+            file = open('index/' + filename, 'r')
+            postlist = json.load(file)
+            # print filename + " loaded"
+            if postlist.has_key(keyword):  # 在索引中匹配到keyword
+                # print(postlist)
+                for docNode in postlist.get(keyword).get('post_list'):  # 合并倒排表至finalPostList
+                    # print(docNode)
+                    if len(finalPostList) == 0 or docNode['docno'] > finalPostList[-1][
+                        'docno']:  # 大部分docId更大的可以直接添加在finalPostList之后
+                        finalPostList.append(docNode)
+                    else:  # 插入中间某个位置
+                        for i in range(len(finalPostList)):
+                            if docNode['docno'] < finalPostList[i]['docno']:
+                                finalPostList.insert(i, docNode)
+            file.close()
     return finalPostList
     # # finalPostList.sort(compDocIndex)
     # docIndexFile = open("doc_filename_index", 'r')

@@ -95,3 +95,6 @@ doc_filename_index
 
 # idea files
 .idea/
+
+# pkl file
+*.pkl

@@ -1,10 +1,11 @@
 # -*- coding:utf-8 -*-
+import fnmatch
 
 import os
 import json
 
 class DocStream():
-    token_stream = dict()   # filename为key，token数组为value
+    token_stream = dict()   # docno为key，token数组为value
     docs = []               # 存放所有文档的filename
     total = 0               # 给分析过的文档计数
 
@@ -12,11 +13,12 @@ class DocStream():
         path = "data"  # 文件夹目录
         files = os.listdir(path)  # 得到文件夹下的所有文件名称
         for filename in files:  # 遍历文件夹
-            self.docs.append(filename)
-            if not os.path.isdir(path+'/'+filename):  # 判断是否是文件夹，不是文件夹才打开
-                self.token_stream[self.total] = self.parseTokenList(path+'/'+filename)
-                print filename+" completed"
-            self.total = self.total + 1
+            if fnmatch.fnmatch(filename,"*.html"):
+                self.docs.append(filename)
+                if not os.path.isdir(path+'/'+filename):  # 判断是否是文件夹，不是文件夹才打开
+                    self.token_stream[self.total] = self.parseTokenList(path+'/'+filename)
+                    print filename+" completed"
+                self.total = self.total + 1
         self.saveDocidIndexFile()
 
     def parseTokenList(self, filename): # 返回文件所有token组成的一个数组
