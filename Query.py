@@ -10,16 +10,17 @@ import word_corrector
 
 diction = word_corrector.Dictionary()
 
+
 def getWordPostList(keyword):  # 得到一个词的倒排表
     finalPostList = []
     for filename in os.listdir('index'):  # 遍历文件夹
-        if fnmatch.fnmatch(filename,"index_*.html"):
+        if fnmatch.fnmatch(filename, "index_*.json"):
             file = open('index/' + filename, 'r')
             postlist = json.load(file)
             # print filename + " loaded"
             if postlist.has_key(keyword):  # 在索引中匹配到keyword
                 # print(postlist)
-                for docNode in postlist.get(keyword).get('post_list'):  # 合并倒排表至finalPostList
+                for docNode in postlist[keyword]['post_list']:  # 合并倒排表至finalPostList
                     # print(docNode)
                     if len(finalPostList) == 0 or docNode['docno'] > finalPostList[-1][
                         'docno']:  # 大部分docId更大的可以直接添加在finalPostList之后
@@ -28,6 +29,7 @@ def getWordPostList(keyword):  # 得到一个词的倒排表
                         for i in range(len(finalPostList)):
                             if docNode['docno'] < finalPostList[i]['docno']:
                                 finalPostList.insert(i, docNode)
+                                break
             file.close()
     return finalPostList
     # # finalPostList.sort(compDocIndex)
@@ -127,15 +129,12 @@ class PhraseQuery(object):
     res = []
 
     def __init__(self, words):
-        for word in words:
-            self.keywords.append(diction.getCorrectWord(word.lower()))
+        self.keywords = [diction.getCorrectWord(word.lower()) for word in words]
         self.res = []
         print self.keywords
 
     def getAllWordsPostList(self):  # postList格式：[{"tf": 2, "position": [231, 400], "docno": 0},...]
-        self.wordPostList = []
-        for keyword in self.keywords:
-            self.wordPostList.append(getWordPostList(keyword))
+        self.wordPostList = [getWordPostList(keyword) for keyword in self.keywords]
         print "word number:", len(self.wordPostList)
 
     def getMatchedDocIndex(self):  # 得到可能匹配的文档（包含这些单词）
@@ -153,17 +152,18 @@ class PhraseQuery(object):
         #                                               各文档 各单词 各位置
 
         for i in range(len(self.docs)):  # 给每篇文档记录word位置
+            print "record position for docid:", self.docs[i]['docno']
             j = 0
             position.append([])
             points.append(0)
             while j < len(self.keywords):  # 得到每个单词的位置
                 # print "word ", j, ":", self.wordPostList[j]
+                position[i].append([])
                 for docNode in self.wordPostList[j]:
-                    # print "docNode:",docNode
                     if docNode['docno'] == self.docs[i]['docno']:  # 在第i个文档中出现
                         print "keyword ", self.keywords[j], " found in doc:", docNode
                         print "position ", docNode['position'], " added to record"
-                        position[i].append(docNode['position'])
+                        position[i][j] = docNode['position']
                 j += 1
 
         for i in range(len(self.docs)):  # 给每篇文档打分
@@ -176,7 +176,7 @@ class PhraseQuery(object):
             print "doc ", self.docs[i], "'s point is:", points[i]
 
         for i in range(len(self.docs)):  # 记录结果并排序
-            self.res.append({'docno': self.docs[i], 'point': points[i]})
+            self.res.append({'docno': self.docs[i]['docno'], 'point': points[i]})
         print "res:", self.res
         self.res.sort(pointCmp)
         print "res after sort:", self.res
@@ -223,7 +223,7 @@ def query(input_line):  # 输入一行进行查询
     if 'AND' in keywords or 'OR' in keywords:  # bool查询
         print 'bool query!'
         for i in range(len(keywords)):
-            if not keywords[i]=='AND' and not keywords[i]=='OR':
+            if not keywords[i] == 'AND' and not keywords[i] == 'OR':
                 keywords[i] = diction.getCorrectWord(keywords[i])
         boolQueryTree = getBoolQueryTree(keywords)
         boolQueryTree.searchQueryResult()
